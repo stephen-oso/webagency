@@ -30,7 +30,7 @@ CATEGORY_MAP = {
 }
 
 
-@celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(bind=True, max_retries=3)
 def discover_task(self, region: str, categories: list[str]):
     from app.workers.gather import gather_task
 
@@ -108,6 +108,6 @@ def discover_task(self, region: str, categories: list[str]):
 
     except Exception as exc:
         db.rollback()
-        raise self.retry(exc=exc)
+        raise self.retry(exc=exc, countdown=60 * (2 ** self.request.retries))
     finally:
         db.close()

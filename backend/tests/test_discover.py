@@ -32,6 +32,7 @@ def test_discover_creates_businesses_for_candidates(db):
     assert len(businesses) == 2
     names = {b.name for b in businesses}
     assert "Budget Plumbing" in names
+    assert db.query(Job).filter(Job.step == "discover").count() >= 2
 
 
 def test_discover_skips_existing_business(db):
