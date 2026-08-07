@@ -23,6 +23,24 @@ CATEGORY_TO_TEMPLATE = {
     "petservices": "petservices", "vet": "petservices", "grooming": "petservices",
 }
 
+OUTREACH_EMAIL_PROMPT = """Write a short, direct outreach email for a web agency that just built a free website for a local business.
+
+Business name: {business_name}
+City: {city}
+New website URL: {site_url}
+
+Tone: direct, not salesy. One person talking to another. Not pushy. Conversational.
+Goal: Let them know the site exists and invite them to keep it if they want.
+Subject line: "I built {business_name} a website — take a look"
+
+Return ONLY a JSON object with exactly these keys:
+{{
+  "subject": "I built {business_name} a website — take a look",
+  "body_html": "<html>...</html> — the full HTML email body (no <head> or DOCTYPE needed)"
+}}
+
+The body should be short (4-6 short paragraphs). Include the site URL as a clickable link. Sign off as "The Web Agency"."""
+
 COPY_PROMPT = """You are writing website copy for a local business. Use ONLY real details from the data provided.
 Do NOT use generic filler phrases. Reference specific services, location, or details that make this business unique.
 
@@ -100,3 +118,44 @@ class ClaudeClient:
             return json.loads(text.strip())
         except json.JSONDecodeError as exc:
             raise ValueError(f"Claude returned invalid JSON: {exc}\nRaw response: {text[:500]}") from exc
+
+    def generate_outreach_email(
+        self, business_name: str, city: str, site_url: str
+    ) -> dict:
+        """Generate a personalised outreach email for a local business.
+
+        Args:
+            business_name: Name of the business.
+            city: City the business operates in.
+            site_url: URL of the newly built site.
+
+        Returns:
+            Dict with keys ``subject`` (str) and ``body_html`` (str).
+        """
+        prompt = OUTREACH_EMAIL_PROMPT.format(
+            business_name=business_name,
+            city=city,
+            site_url=site_url,
+        )
+
+        client = anthropic.Anthropic(api_key=self.api_key)
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=600,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except anthropic.APIError as exc:
+            raise RuntimeError(f"Claude API error: {exc}") from exc
+
+        text = message.content[0].text.strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        try:
+            return json.loads(text.strip())
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Claude returned invalid JSON: {exc}\nRaw response: {text[:500]}"
+            ) from exc
