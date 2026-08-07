@@ -524,7 +524,7 @@ def test_engine():
 def db(test_engine):
     connection = test_engine.connect()
     transaction = connection.begin()
-    Session = sessionmaker(bind=connection)
+    Session = sessionmaker(bind=connection, join_transaction_mode="create_savepoint")
     session = Session()
     yield session
     session.close()
@@ -2334,11 +2334,15 @@ def _count_todays_outreach(db) -> int:
 
 @celery_app.task(bind=True, max_retries=3, default_retry_delay=60)
 def outreach_task(self, business_id: str):
+    from celery.exceptions import Retry
+
     db = SessionLocal()
+    if _count_todays_outreach(db) >= settings.outreach_daily_cap:
+        db.close()
+        logger.info(f"Daily cap reached — requeueing {business_id}")
+        raise self.retry(countdown=3600)
+
     try:
-        if _count_todays_outreach(db) >= settings.outreach_daily_cap:
-            logger.info(f"Daily cap reached — requeueing {business_id}")
-            raise self.retry(countdown=3600)
 
         business = db.query(Business).filter(Business.id == uuid.UUID(business_id)).first()
         site = db.query(Site).filter(Site.business_id == business.id).first()
@@ -2532,13 +2536,15 @@ def test_outreach_respects_daily_cap(db):
     db.flush()
 
     with patch("app.workers.outreach_worker._count_todays_outreach", return_value=20), \
+         patch("app.workers.outreach_worker.SessionLocal", return_value=db), \
          patch("app.workers.outreach_worker.settings") as mock_settings:
         mock_settings.outreach_daily_cap = 20
         from app.workers.outreach_worker import outreach_task
-        # Should retry (countdown=3600) rather than send
+        # Daily cap hit — task raises Retry before creating any Outreach record
+        import celery.exceptions
         try:
             outreach_task.run(str(b.id))
-        except Exception:
+        except celery.exceptions.Retry:
             pass
 
     assert db.query(Outreach).count() == 0
