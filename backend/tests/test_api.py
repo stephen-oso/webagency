@@ -35,6 +35,11 @@ def _make_business(**kwargs):
     b.existing_website = kwargs.get("existing_website", None)
     b.google_place_id = kwargs.get("google_place_id", None)
     b.yelp_id = kwargs.get("yelp_id", None)
+    # Explicit None for nested detail fields so model_validate doesn't get MagicMock auto-attrs
+    b.asset = None
+    b.site = None
+    b.outreach = None
+    b.recent_jobs = []
     return b
 
 
@@ -158,17 +163,94 @@ def test_list_businesses_filter_by_status():
 # ---------------------------------------------------------------------------
 
 def test_get_business_found():
+    """GET /api/businesses/{id} returns nested keys; no related data → nulls/empty lists."""
     biz_id = uuid.uuid4()
     b = _make_business(id=biz_id, name="Detailed Biz")
 
     mock_session = _mock_db()
-    mock_session.query.return_value.filter.return_value.first.return_value = b
+
+    def _query_side_effect(model):
+        from app.models.business import Business, BusinessAsset
+        from app.models.site import Site
+        from app.models.outreach import Outreach
+        from app.models.job import Job
+
+        q = MagicMock()
+        if model is Business:
+            q.filter.return_value.first.return_value = b
+        elif model is BusinessAsset:
+            q.filter.return_value.first.return_value = None
+        elif model is Site:
+            q.filter.return_value.first.return_value = None
+        elif model is Outreach:
+            q.filter.return_value.first.return_value = None
+        elif model is Job:
+            q.filter.return_value.order_by.return_value.limit.return_value.all.return_value = []
+        else:
+            q.filter.return_value.first.return_value = None
+        return q
+
+    mock_session.query.side_effect = _query_side_effect
 
     app.dependency_overrides[get_db] = _override_db(mock_session)
     try:
         resp = client.get(f"/api/businesses/{biz_id}")
         assert resp.status_code == 200
-        assert resp.json()["name"] == "Detailed Biz"
+        data = resp.json()
+        assert data["name"] == "Detailed Biz"
+        assert "asset" in data
+        assert "site" in data
+        assert "outreach" in data
+        assert "recent_jobs" in data
+        assert data["asset"] is None
+        assert data["site"] is None
+        assert data["outreach"] is None
+        assert data["recent_jobs"] == []
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_get_business_found_with_site():
+    """GET /api/businesses/{id} returns nested site when site exists."""
+    biz_id = uuid.uuid4()
+    site_id = uuid.uuid4()
+    b = _make_business(id=biz_id, name="Biz With Site")
+    s = _make_site(id=site_id, business_id=biz_id, review_status="pending", template_used="plumber")
+
+    mock_session = _mock_db()
+
+    def _query_side_effect(model):
+        from app.models.business import Business, BusinessAsset
+        from app.models.site import Site
+        from app.models.outreach import Outreach
+        from app.models.job import Job
+
+        q = MagicMock()
+        if model is Business:
+            q.filter.return_value.first.return_value = b
+        elif model is BusinessAsset:
+            q.filter.return_value.first.return_value = None
+        elif model is Site:
+            q.filter.return_value.first.return_value = s
+        elif model is Outreach:
+            q.filter.return_value.first.return_value = None
+        elif model is Job:
+            q.filter.return_value.order_by.return_value.limit.return_value.all.return_value = []
+        else:
+            q.filter.return_value.first.return_value = None
+        return q
+
+    mock_session.query.side_effect = _query_side_effect
+
+    app.dependency_overrides[get_db] = _override_db(mock_session)
+    try:
+        resp = client.get(f"/api/businesses/{biz_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "Biz With Site"
+        assert data["site"] is not None
+        assert data["site"]["review_status"] == "pending"
+        assert data["site"]["template_used"] == "plumber"
     finally:
         app.dependency_overrides.pop(get_db, None)
 
@@ -474,7 +556,22 @@ def test_approve_site_enqueues_outreach():
     s = _make_site(id=site_id, business_id=biz_id, review_status="pending")
 
     mock_session = _mock_db()
-    mock_session.query.return_value.filter.return_value.first.return_value = s
+
+    def _query_side_effect(model):
+        from app.models.site import Site as SiteModel
+        from app.models.outreach import Outreach as OutreachModel
+
+        q = MagicMock()
+        if model is SiteModel:
+            q.filter.return_value.first.return_value = s
+        elif model is OutreachModel:
+            # Outreach idempotency guard: not sent yet → None
+            q.filter.return_value.first.return_value = None
+        else:
+            q.filter.return_value.first.return_value = None
+        return q
+
+    mock_session.query.side_effect = _query_side_effect
 
     app.dependency_overrides[get_db] = _override_db(mock_session)
     try:

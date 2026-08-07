@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.site import Site
+from app.models.outreach import Outreach
 from app.schemas.site import SiteOut
 
 router = APIRouter(prefix="/sites", tags=["sites"])
@@ -22,7 +23,14 @@ def approve_site(site_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Site not found")
     site.review_status = "approved"
     db.commit()
-    outreach_task.delay(str(site.business_id), str(site.id))
+
+    # Only enqueue outreach if not already sent
+    existing_outreach = db.query(Outreach).filter(
+        Outreach.business_id == site.business_id,
+        Outreach.email_sent_at.isnot(None)
+    ).first()
+    if not existing_outreach:
+        outreach_task.delay(str(site.business_id), str(site.id))
     return {"approved": True}
 
 

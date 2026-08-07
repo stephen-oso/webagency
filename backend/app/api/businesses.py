@@ -8,7 +8,7 @@ from app.models.business import Business
 from app.models.site import Site
 from app.models.outreach import Outreach
 from app.models.job import Job
-from app.schemas.business import BusinessOut, BusinessDetailOut
+from app.schemas.business import BusinessOut, BusinessDetailOut, AssetOut, SiteOut, OutreachSummaryOut, JobSummaryOut
 
 router = APIRouter(prefix="/businesses", tags=["businesses"])
 
@@ -32,10 +32,31 @@ def list_businesses(
 
 @router.get("/{business_id}", response_model=BusinessDetailOut)
 def get_business(business_id: str, db: Session = Depends(get_db)):
-    b = db.query(Business).filter(Business.id == business_id).first()
-    if not b:
+    from app.models.business import BusinessAsset
+    from app.models.outreach import Outreach as OutreachModel
+
+    business = db.query(Business).filter(Business.id == business_id).first()
+    if not business:
         raise HTTPException(status_code=404, detail="Business not found")
-    return b
+
+    result = BusinessDetailOut.model_validate(business)
+
+    asset = db.query(BusinessAsset).filter(BusinessAsset.business_id == business.id).first()
+    if asset:
+        result.asset = AssetOut.model_validate(asset)
+
+    site = db.query(Site).filter(Site.business_id == business.id).first()
+    if site:
+        result.site = SiteOut.model_validate(site)
+
+    outreach = db.query(OutreachModel).filter(OutreachModel.business_id == business.id).first()
+    if outreach:
+        result.outreach = OutreachSummaryOut.model_validate(outreach)
+
+    jobs = db.query(Job).filter(Job.business_id == business.id).order_by(Job.last_run_at.desc()).limit(5).all()
+    result.recent_jobs = [JobSummaryOut.model_validate(j) for j in jobs]
+
+    return result
 
 
 @router.post("/{business_id}/approve")
