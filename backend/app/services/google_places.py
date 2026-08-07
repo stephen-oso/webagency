@@ -11,6 +11,20 @@ class GooglePlacesClient:
     api_key: str
 
     def search_businesses(self, region: str, category: str, radius_m: int = 50000) -> list[dict]:
+        """Search for businesses using Google Places nearby search API.
+
+        **IMPORTANT:** The Google nearbysearch API does not return city and state information.
+        This method returns empty strings for 'city' and 'state' fields. To populate these fields,
+        you must call get_place_details() with the place_id for each result.
+
+        Args:
+            region: The region/address to search around
+            category: The business category/keyword to search for
+            radius_m: Search radius in meters (default: 50000)
+
+        Returns:
+            A list of normalized business result dicts with empty city/state fields.
+        """
         coords = self._geocode(region)
         params = {
             "location": f"{coords['lat']},{coords['lng']}",
@@ -63,6 +77,8 @@ class GooglePlacesClient:
             "place_id": place.get("place_id"),
             "name": place.get("name"),
             "address": place.get("vicinity"),
+            # Google's nearbysearch API does not return city/state data. These must be populated
+            # by calling get_place_details() and using _normalize_details() instead.
             "city": "",
             "state": "",
             "phone": None,
