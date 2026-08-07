@@ -1,6 +1,7 @@
 """Tests for the Claude copy generation service."""
 
 import pytest
+import anthropic
 from unittest.mock import patch, MagicMock
 from app.services.claude import ClaudeClient
 
@@ -107,3 +108,25 @@ def test_generate_site_copy_uses_correct_model(client):
 
     call_kwargs = mock_create.call_args
     assert call_kwargs.kwargs["model"] == "claude-sonnet-4-6"
+
+
+def test_generate_site_copy_raises_on_malformed_json(client):
+    mock_response = MagicMock()
+    mock_response.content = [MagicMock(text="this is not json")]
+    with patch("anthropic.Anthropic") as MockAnthropic:
+        MockAnthropic.return_value.messages.create.return_value = mock_response
+        with pytest.raises(ValueError, match="Claude returned invalid JSON"):
+            client.generate_site_copy(
+                {"name": "Test", "city": "Toronto", "state": "ON", "category": "plumber"},
+                {},
+            )
+
+
+def test_generate_site_copy_raises_on_api_error(client):
+    with patch("anthropic.Anthropic") as MockAnthropic:
+        MockAnthropic.return_value.messages.create.side_effect = anthropic.APIConnectionError(request=MagicMock())
+        with pytest.raises(RuntimeError, match="Claude API error"):
+            client.generate_site_copy(
+                {"name": "Test", "city": "Toronto", "state": "ON", "category": "plumber"},
+                {},
+            )

@@ -82,15 +82,21 @@ class ClaudeClient:
         )
 
         client = anthropic.Anthropic(api_key=self.api_key)
-        message = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=800,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        try:
+            message = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=800,
+                messages=[{"role": "user", "content": prompt}],
+            )
+        except anthropic.APIError as exc:
+            raise RuntimeError(f"Claude API error: {exc}") from exc
 
         text = message.content[0].text.strip()
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
                 text = text[4:]
-        return json.loads(text.strip())
+        try:
+            return json.loads(text.strip())
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Claude returned invalid JSON: {exc}\nRaw response: {text[:500]}") from exc
