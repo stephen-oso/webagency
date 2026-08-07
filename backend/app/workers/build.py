@@ -1,6 +1,8 @@
 """Build worker — selects a template, generates copy via Claude, and writes a site_data.json manifest."""
 import json
 import logging
+import os
+import shutil
 import uuid
 from pathlib import Path
 
@@ -72,8 +74,13 @@ def build_task(self, business_id: str):
             },
         }
 
-        output_dir = Path(settings.base_dir) / "built_sites" / business_id
-        output_dir.mkdir(parents=True, exist_ok=True)
+        template_src = os.path.join(settings.base_dir, "templates", template)
+        build_dest = os.path.join(settings.base_dir, "built_sites", business_id)
+        os.makedirs(build_dest, exist_ok=True)
+        if os.path.exists(template_src):
+            shutil.copytree(template_src, build_dest, dirs_exist_ok=True)
+
+        output_dir = Path(build_dest)
         (output_dir / "site_data.json").write_text(json.dumps(site_data, indent=2))
 
         site = Site(business_id=business.id, template_used=template)

@@ -262,3 +262,30 @@ def test_build_uses_exponential_backoff_on_retry():
     assert "countdown=60 * (2 ** self.request.retries)" in source, (
         "build_task must use exponential backoff: countdown=60 * (2 ** self.request.retries)"
     )
+
+
+def test_build_copies_template_to_build_dir(tmp_path):
+    """build_task copies the template directory into built_sites/{business_id}/."""
+    business_id = str(uuid.uuid4())
+    mock_business = _make_business(business_id)
+    mock_asset = _make_asset()
+
+    # Create a real template stub so os.path.exists returns True naturally.
+    template_dir = tmp_path / "templates" / "salon"
+    template_dir.mkdir(parents=True)
+    (template_dir / "index.html").write_text("<html></html>")
+
+    with patch("app.workers.build.shutil.copytree") as mock_copytree:
+        _run_build_task(business_id, mock_business, mock_asset, tmp_path, template="salon")
+
+    assert mock_copytree.called, "shutil.copytree was not called"
+    call_args = mock_copytree.call_args
+    src_path = call_args.args[0]
+    dst_path = call_args.args[1]
+
+    assert src_path.endswith(os.path.join("templates", "salon")), (
+        f"copytree source should end with templates/salon, got: {src_path}"
+    )
+    assert dst_path.endswith(os.path.join("built_sites", business_id)), (
+        f"copytree destination should end with built_sites/{business_id}, got: {dst_path}"
+    )
