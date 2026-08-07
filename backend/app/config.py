@@ -31,5 +31,7 @@ class Settings(BaseSettings):
     outreach_daily_cap: int = 20
     review_mode: bool = True
 
+    base_dir: str = "."
+
 
 settings = Settings()
