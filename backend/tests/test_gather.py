@@ -47,7 +47,7 @@ def test_gather_creates_asset_and_enqueues_build(db):
          patch("app.workers.gather.YelpClient") as MockYelp, \
          patch("app.workers.gather.R2StorageClient") as MockR2, \
          patch("app.workers.gather.SessionLocal", return_value=db), \
-         patch("app.workers.build.build_task.delay") as mock_build:
+         patch("app.workers.build.build_task") as mock_build:
 
         MockGoogle.return_value.get_place_details.return_value = mock_google_detail
         MockGoogle.return_value.get_photo_url.return_value = "https://maps.googleapis.com/photo?ref=ref1"
@@ -62,7 +62,7 @@ def test_gather_creates_asset_and_enqueues_build(db):
     assert b.assets is not None
     assert b.assets.rating == 4.3
     assert "https://r2.example.com/photo_0.jpg" in b.assets.photos
-    mock_build.assert_called_once_with(business_id)
+    mock_build.delay.assert_called_once_with(business_id)
 
 
 def test_gather_creates_job_record(db):
@@ -98,12 +98,11 @@ def test_gather_creates_job_record(db):
          patch("app.workers.gather.YelpClient") as MockYelp, \
          patch("app.workers.gather.R2StorageClient") as MockR2, \
          patch("app.workers.gather.SessionLocal", return_value=db), \
-         patch("app.workers.build.build_task.delay"):
+         patch("app.workers.build.build_task"):
 
         MockGoogle.return_value.get_place_details.return_value = mock_google_detail
         MockGoogle.return_value.get_photo_url.return_value = "https://maps.googleapis.com/photo?ref=x"
         MockR2.return_value.upload_from_url.return_value = "https://r2.example.com/x.jpg"
-        MockYelp.return_value.get_business.return_value = {}
 
         from app.workers.gather import gather_task
         gather_task.run(business_id)
@@ -147,7 +146,7 @@ def test_gather_backfills_city_state_when_empty(db):
          patch("app.workers.gather.YelpClient") as MockYelp, \
          patch("app.workers.gather.R2StorageClient") as MockR2, \
          patch("app.workers.gather.SessionLocal", return_value=db), \
-         patch("app.workers.build.build_task.delay"):
+         patch("app.workers.build.build_task"):
 
         MockGoogle.return_value.get_place_details.return_value = mock_google_detail
         MockGoogle.return_value.get_photo_url.return_value = "https://maps.googleapis.com/photo?ref=y"
@@ -170,13 +169,58 @@ def test_gather_skips_missing_business(db):
          patch("app.workers.gather.YelpClient"), \
          patch("app.workers.gather.R2StorageClient"), \
          patch("app.workers.gather.SessionLocal", return_value=db), \
-         patch("app.workers.build.build_task.delay") as mock_build:
+         patch("app.workers.build.build_task") as mock_build:
 
         from app.workers.gather import gather_task
         gather_task.run(missing_id)
 
-    mock_build.assert_not_called()
+    mock_build.delay.assert_not_called()
     assert db.query(BusinessAsset).count() == 0
+
+
+def test_gather_succeeds_when_google_fails(db):
+    """Worker should complete and enqueue build even when Google Places raises an exception."""
+    b = Business(
+        name="Offline Biz",
+        city="Toronto",
+        state="ON",
+        category="retail",
+        google_place_id="gp-offline999",
+        yelp_id="yelp-offline999",
+        status="discovered",
+    )
+    db.add(b)
+    db.flush()
+    business_id = str(b.id)
+
+    mock_yelp_detail = {
+        "yelp_id": "yelp-offline999",
+        "name": "Offline Biz",
+        "photos": [],
+        "hours": [],
+        "price_range": "$",
+        "categories": ["Retail"],
+        "description": None,
+    }
+
+    with patch("app.workers.gather.GooglePlacesClient") as MockGoogle, \
+         patch("app.workers.gather.YelpClient") as MockYelp, \
+         patch("app.workers.gather.R2StorageClient") as MockR2, \
+         patch("app.workers.gather.SessionLocal", return_value=db), \
+         patch("app.workers.build.build_task") as mock_build:
+
+        MockGoogle.return_value.get_place_details.side_effect = Exception("API down")
+        MockYelp.return_value.get_business.return_value = mock_yelp_detail
+        MockR2.return_value.upload_from_url.return_value = "https://r2.example.com/z.jpg"
+
+        from app.workers.gather import gather_task
+        gather_task.run(business_id)
+
+    db.refresh(b)
+    assert b.status == "gathering_done"
+    asset = db.query(BusinessAsset).filter(BusinessAsset.business_id == b.id).first()
+    assert asset is not None
+    mock_build.delay.assert_called_once_with(business_id)
 
 
 def test_gather_uses_exponential_backoff_on_retry():
