@@ -98,12 +98,12 @@ def test_dockerfile_exists():
     assert os.path.exists(dockerfile_path), f"Dockerfile not found at {dockerfile_path}"
 
 
-def test_dockerfile_uses_python_311():
-    """Dockerfile must use Python 3.11."""
+def test_dockerfile_uses_python_312():
+    """Dockerfile must use Python 3.12."""
     dockerfile_path = os.path.join(BACKEND_DIR, "Dockerfile")
     with open(dockerfile_path) as f:
         content = f.read()
-    assert "python:3.11" in content, "Dockerfile must use Python 3.11 base image"
+    assert "python:3.12" in content, "Dockerfile must use Python 3.12 base image"
 
 
 def test_dockerfile_has_expose_8000():
