@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -15,7 +17,7 @@ def list_sites(db: Session = Depends(get_db)):
 
 
 @router.post("/{site_id}/approve")
-def approve_site(site_id: str, db: Session = Depends(get_db)):
+def approve_site(site_id: UUID, db: Session = Depends(get_db)):
     from app.workers.outreach_worker import outreach_task
 
     site = db.query(Site).filter(Site.id == site_id).first()
@@ -35,7 +37,7 @@ def approve_site(site_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{site_id}/reject")
-def reject_site(site_id: str, db: Session = Depends(get_db)):
+def reject_site(site_id: UUID, db: Session = Depends(get_db)):
     site = db.query(Site).filter(Site.id == site_id).first()
     if not site:
         raise HTTPException(status_code=404, detail="Site not found")

@@ -133,7 +133,13 @@ def outreach_task(self, business_id: str, site_id: str):
 
         # Mark business as outreached and log the pipeline step.
         business.status = "outreached"
-        job = Job(business_id=business.id, step="outreach", status="success")
+        job = Job(
+            business_id=business.id,
+            step="outreach",
+            status="success",
+            last_run_at=datetime.utcnow(),
+            attempts=self.request.retries + 1,
+        )
         db.add(job)
         db.commit()
         logger.info(f"Outreach complete for business {business_id}")

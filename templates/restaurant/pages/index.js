@@ -1,2 +1,2 @@
 export default function Home({ data }) { return <div><h1>{data?.headline}</h1><p>{data?.subheadline}</p></div>; }
-export async function getStaticProps() { const data = require("../site-data.json"); return { props: { data } }; }
+export async function getStaticProps() { const data = require("../site_data.json"); return { props: { data } }; }

@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 from app.workers.celery_app import celery_app
@@ -87,7 +88,13 @@ def build_task(self, business_id: str):
         db.add(site)
 
         business.status = "built"
-        job = Job(business_id=business.id, step="build", status="success")
+        job = Job(
+            business_id=business.id,
+            step="build",
+            status="success",
+            last_run_at=datetime.utcnow(),
+            attempts=self.request.retries + 1,
+        )
         db.add(job)
         db.commit()
 

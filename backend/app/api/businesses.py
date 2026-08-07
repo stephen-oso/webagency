@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -31,7 +33,7 @@ def list_businesses(
 
 
 @router.get("/{business_id}", response_model=BusinessDetailOut)
-def get_business(business_id: str, db: Session = Depends(get_db)):
+def get_business(business_id: UUID, db: Session = Depends(get_db)):
     from app.models.business import BusinessAsset
     from app.models.outreach import Outreach as OutreachModel
 
@@ -60,7 +62,7 @@ def get_business(business_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{business_id}/approve")
-def approve_business(business_id: str, db: Session = Depends(get_db)):
+def approve_business(business_id: UUID, db: Session = Depends(get_db)):
     """Set site.review_status='approved'; enqueue outreach if site exists and outreach not sent."""
     from app.workers.outreach_worker import outreach_task
 
@@ -82,13 +84,13 @@ def approve_business(business_id: str, db: Session = Depends(get_db)):
         .first()
     )
     if not outreach_sent:
-        outreach_task.delay(business_id, str(site.id))
+        outreach_task.delay(str(business_id), str(site.id))
 
     return {"approved": True, "site_id": str(site.id)}
 
 
 @router.post("/{business_id}/reject")
-def reject_business(business_id: str, db: Session = Depends(get_db)):
+def reject_business(business_id: UUID, db: Session = Depends(get_db)):
     """Set site.review_status='rejected'."""
     b = db.query(Business).filter(Business.id == business_id).first()
     if not b:
@@ -104,7 +106,7 @@ def reject_business(business_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/{business_id}/retry")
-def retry_step(business_id: str, body: RetryBody, db: Session = Depends(get_db)):
+def retry_step(business_id: UUID, body: RetryBody, db: Session = Depends(get_db)):
     """Re-enqueue a pipeline step for a business."""
     b = db.query(Business).filter(Business.id == business_id).first()
     if not b:
@@ -113,20 +115,20 @@ def retry_step(business_id: str, body: RetryBody, db: Session = Depends(get_db))
     step = body.step
     if step == "gather":
         from app.workers.gather import gather_task
-        gather_task.delay(business_id)
+        gather_task.delay(str(business_id))
     elif step == "build":
         from app.workers.build import build_task
-        build_task.delay(business_id)
+        build_task.delay(str(business_id))
     elif step == "publish":
         from app.workers.publish import publish_task
-        publish_task.delay(business_id)
+        publish_task.delay(str(business_id))
     elif step == "outreach":
         from app.workers.outreach_worker import outreach_task
         site = db.query(Site).filter(Site.business_id == business_id).first()
         if not site:
             raise HTTPException(status_code=404, detail="No site found for this business")
-        outreach_task.delay(business_id, str(site.id))
+        outreach_task.delay(str(business_id), str(site.id))
     else:
         raise HTTPException(status_code=400, detail=f"Unknown step: {step}. Must be one of: gather, build, publish, outreach")
 
-    return {"queued": True, "step": step, "business_id": business_id}
+    return {"queued": True, "step": step, "business_id": str(business_id)}

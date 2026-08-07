@@ -56,7 +56,13 @@ def publish_task(self, business_id: str):
         site.deployed_at = datetime.utcnow()
 
         business.status = "published"
-        job = Job(business_id=business.id, step="publish", status="success")
+        job = Job(
+            business_id=business.id,
+            step="publish",
+            status="success",
+            last_run_at=datetime.utcnow(),
+            attempts=self.request.retries + 1,
+        )
         db.add(job)
 
         if settings.review_mode:

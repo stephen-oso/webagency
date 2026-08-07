@@ -1,5 +1,5 @@
 # Stage 1: builder — install dependencies via Poetry
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN poetry config virtualenvs.in-project true \
     && poetry install --only main --no-root --no-interaction --no-ansi
 
 # Stage 2: runtime — minimal image
-FROM python:3.11-slim AS runtime
+FROM python:3.12-slim AS runtime
 
 WORKDIR /app
 

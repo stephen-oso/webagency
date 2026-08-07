@@ -1,5 +1,6 @@
 import logging
 import uuid
+from datetime import datetime
 
 from app.workers.celery_app import celery_app
 from app.database import SessionLocal
@@ -127,7 +128,13 @@ def gather_task(self, business_id: str):
         db.add(asset)
 
         business.status = "gathering_done"
-        job = Job(business_id=business.id, step="gather", status="success")
+        job = Job(
+            business_id=business.id,
+            step="gather",
+            status="success",
+            last_run_at=datetime.utcnow(),
+            attempts=self.request.retries + 1,
+        )
         db.add(job)
         db.commit()
 

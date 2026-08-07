@@ -1,4 +1,7 @@
 import logging
+from datetime import datetime
+
+from sqlalchemy.exc import IntegrityError
 
 from app.workers.celery_app import celery_app
 from app.database import SessionLocal
@@ -82,11 +85,14 @@ def discover_task(self, region: str, categories: list[str]):
             if existing:
                 continue
 
+            name = c["name"]
+            city = c.get("city", "")
+            state = c.get("state", "")
             business = Business(
-                name=c["name"],
+                name=name,
                 address=c.get("address"),
-                city=c.get("city", ""),
-                state=c.get("state", ""),
+                city=city,
+                state=state,
                 phone=c.get("phone"),
                 category=c["category"],
                 google_place_id=c.get("place_id"),
@@ -95,10 +101,21 @@ def discover_task(self, region: str, categories: list[str]):
                 website_score=c["website_score"],
                 status="discovered",
             )
-            db.add(business)
-            db.flush()
+            try:
+                db.add(business)
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                logger.info(f"Duplicate business skipped: {name} in {city}, {state}")
+                continue
 
-            job = Job(business_id=business.id, step="discover", status="success")
+            job = Job(
+                business_id=business.id,
+                step="discover",
+                status="success",
+                last_run_at=datetime.utcnow(),
+                attempts=self.request.retries + 1,
+            )
             db.add(job)
 
         db.commit()
