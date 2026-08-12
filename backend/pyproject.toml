@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "webagency-backend"
+version = "0.1.0"
+description = "Autonomous website agency pipeline"
+packages = [{include = "app"}]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = "^0.115"
+uvicorn = {extras = ["standard"], version = "^0.30"}
+celery = {extras = ["redis"], version = "^5.4"}
+sqlalchemy = "^2.0"
+alembic = "^1.13"
+psycopg2-binary = "^2.9"
+pydantic-settings = "^2.5"
+anthropic = "^0.40"
+playwright = "^1.48"
+boto3 = "^1.35"
+httpx = "^0.27"
+redis = "^5.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3"
+pytest-mock = "^3.14"
+respx = "^0.21"
+moto = {extras = ["s3"], version = "^5.0"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
