@@ -84,8 +84,12 @@ def build_task(self, business_id: str):
         output_dir = Path(build_dest)
         (output_dir / "site_data.json").write_text(json.dumps(site_data, indent=2))
 
-        site = Site(business_id=business.id, template_used=template)
-        db.add(site)
+        site = db.query(Site).filter(Site.business_id == business.id).first()
+        if site:
+            site.template_used = template
+        else:
+            site = Site(business_id=business.id, template_used=template)
+            db.add(site)
 
         business.status = "built"
         job = Job(

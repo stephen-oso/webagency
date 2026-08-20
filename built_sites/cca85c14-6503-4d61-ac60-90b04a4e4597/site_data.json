@@ -1,0 +1,46 @@
+{
+  "business_id": "cca85c14-6503-4d61-ac60-90b04a4e4597",
+  "template": "restaurant",
+  "copy": {
+    "headline": "Lake Views, Live Music, Family Meals",
+    "subheadline": "The Lighthouse Restaurant & Lounge serves American and Mexican food with stunning lake views in Briarcliff, TX.",
+    "about": "Perched in Briarcliff, TX, The Lighthouse Restaurant & Lounge offers American and Mexican cuisine on a lake view terrace. Whether you're catching live music on the stage or letting the kids play in the dedicated kids' area, there's something for the whole family. Rated 4.5 stars across 1,040 reviews.",
+    "services": [
+      "American & Mexican cuisine",
+      "Lake view terrace dining",
+      "Live music stage",
+      "Kids' area"
+    ],
+    "cta_text": "Reserve Your Table Today",
+    "meta_description": "The Lighthouse Restaurant & Lounge in Briarcliff, TX \u2014 American & Mexican food, lake view terrace, live music, and a kids' area. Open 7 days a week."
+  },
+  "photos": [
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_0.jpg",
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_1.jpg",
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_2.jpg",
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_3.jpg",
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_4.jpg",
+    "https://b7c1452f47861183bb4565336b620975.r2.cloudflarestorage.com/webagency-assets/businesses/cca85c14-6503-4d61-ac60-90b04a4e4597/photo_5.jpg"
+  ],
+  "business_data": {
+    "name": "The Lighthouse Restaurant & Lounge",
+    "city": "Briarcliff",
+    "state": "TX",
+    "phone": null,
+    "email": null,
+    "category": "restaurant",
+    "hours": {
+      "weekday_text": [
+        "Monday: 10:30\u202fAM\u2009\u2013\u20099:00\u202fPM",
+        "Tuesday: 10:30\u202fAM\u2009\u2013\u20099:00\u202fPM",
+        "Wednesday: 10:30\u202fAM\u2009\u2013\u20099:00\u202fPM",
+        "Thursday: 10:30\u202fAM\u2009\u2013\u20099:00\u202fPM",
+        "Friday: 10:30\u202fAM\u2009\u2013\u200910:00\u202fPM",
+        "Saturday: 9:00\u202fAM\u2009\u2013\u200910:00\u202fPM",
+        "Sunday: 9:00\u202fAM\u2009\u2013\u20099:00\u202fPM"
+      ]
+    },
+    "rating": 4.5,
+    "review_count": 1040
+  }
+}
