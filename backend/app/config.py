@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     google_places_api_key: str = ""
-    yelp_api_key: str = ""
 
     anthropic_api_key: str = ""
 

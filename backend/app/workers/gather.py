@@ -7,7 +7,6 @@ from app.database import SessionLocal
 from app.models.business import Business, BusinessAsset
 from app.models.job import Job
 from app.services.google_places import GooglePlacesClient
-from app.services.yelp import YelpClient
 from app.services.storage import R2StorageClient
 from app.config import settings
 
@@ -31,7 +30,6 @@ def gather_task(self, business_id: str):
         db.commit()
 
         google = GooglePlacesClient(api_key=settings.google_places_api_key)
-        yelp = YelpClient(api_key=settings.yelp_api_key)
         storage = R2StorageClient(
             endpoint=settings.cloudflare_r2_endpoint,
             access_key=settings.cloudflare_r2_access_key,
@@ -40,7 +38,6 @@ def gather_task(self, business_id: str):
         )
 
         raw_google: dict = {}
-        raw_yelp: dict = {}
         photos: list[str] = []
         hours: list | dict = []
         description: str | None = None
@@ -78,36 +75,6 @@ def gather_task(self, business_id: str):
             except Exception as e:
                 logger.warning(f"gather_task: Google Places details failed for {business_id}: {e}")
 
-        # --- Yelp ---
-        if business.yelp_id:
-            try:
-                raw_yelp = yelp.get_business(business.yelp_id)
-
-                # Backfill city/state from Yelp if still empty
-                if not business.city and raw_yelp.get("city"):
-                    business.city = raw_yelp["city"]
-                if not business.state and raw_yelp.get("state"):
-                    business.state = raw_yelp["state"]
-
-                price_range = raw_yelp.get("price_range")
-                services = raw_yelp.get("categories", [])
-
-                # Prefer Yelp description when Google gave nothing
-                if not description:
-                    description = raw_yelp.get("description")
-
-                for i, photo_url in enumerate(raw_yelp.get("photos", [])[:3]):
-                    key = f"businesses/{business_id}/yelp_photo_{i}.jpg"
-                    try:
-                        r2_url = storage.upload_from_url(photo_url, key)
-                        if r2_url not in photos:
-                            photos.append(r2_url)
-                    except Exception as e:
-                        logger.warning(f"gather_task: failed to upload Yelp photo {i} for {business_id}: {e}")
-
-            except Exception as e:
-                logger.warning(f"gather_task: Yelp details failed for {business_id}: {e}")
-
         # Normalise hours to a dict for JSON storage
         hours_dict: dict | None = (
             {"weekday_text": hours} if isinstance(hours, list) else hours or None
@@ -123,7 +90,7 @@ def gather_task(self, business_id: str):
             services=services or None,
             price_range=price_range,
             raw_google=raw_google or None,
-            raw_yelp=raw_yelp or None,
+            raw_yelp=None,
         )
         db.add(asset)
 

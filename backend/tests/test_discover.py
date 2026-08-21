@@ -10,29 +10,21 @@ def test_discover_creates_businesses_for_candidates(db):
         "city": "Ottawa", "state": "ON", "phone": None, "website": None,
         "rating": 3.8, "review_count": 12, "photos": [], "yelp_id": None,
     }
-    yelp_result = {
-        "yelp_id": "yelp-xyz", "place_id": None, "name": "Fast Fix Plumbing",
-        "address": "2 Pipe Ave", "city": "Ottawa", "state": "ON",
-        "phone": "613-555-0101", "website": None, "rating": 4.0, "review_count": 8, "photos": [],
-    }
 
     with patch("app.workers.discover.GooglePlacesClient") as MockGoogle, \
-         patch("app.workers.discover.YelpClient") as MockYelp, \
          patch("app.workers.discover.score_website", return_value=0), \
          patch("app.workers.discover.SessionLocal", return_value=db), \
          patch("app.workers.gather.gather_task.delay"):
 
         MockGoogle.return_value.search_businesses.return_value = [google_result]
-        MockYelp.return_value.search_businesses.return_value = [yelp_result]
 
         from app.workers.discover import discover_task
         discover_task.run("Ottawa, ON", ["plumber"])
 
     businesses = db.query(Business).all()
-    assert len(businesses) == 2
-    names = {b.name for b in businesses}
-    assert "Budget Plumbing" in names
-    assert db.query(Job).filter(Job.step == "discover").count() >= 2
+    assert len(businesses) == 1
+    assert businesses[0].name == "Budget Plumbing"
+    assert db.query(Job).filter(Job.step == "discover").count() >= 1
 
 
 def test_discover_skips_existing_business(db):
@@ -48,13 +40,11 @@ def test_discover_skips_existing_business(db):
     }
 
     with patch("app.workers.discover.GooglePlacesClient") as MockGoogle, \
-         patch("app.workers.discover.YelpClient") as MockYelp, \
          patch("app.workers.discover.score_website", return_value=0), \
          patch("app.workers.discover.SessionLocal", return_value=db), \
          patch("app.workers.gather.gather_task.delay"):
 
         MockGoogle.return_value.search_businesses.return_value = [google_result]
-        MockYelp.return_value.search_businesses.return_value = []
 
         from app.workers.discover import discover_task
         discover_task.run("Ottawa, ON", ["plumber"])
