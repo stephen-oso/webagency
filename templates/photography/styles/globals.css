@@ -1,0 +1,63 @@
+:root {
+  --bg: #FFFFFF;
+  --black: #0A0A0A;
+  --gray: #F5F5F5;
+  --text: #1A1A1A;
+  --muted: #888888;
+  --border: #E8E8E8;
+}
+
+*,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Karla', system-ui, sans-serif; font-size: 15px; line-height: 1.7; font-weight: 300; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+.nav { position: fixed; inset: 0 0 auto; z-index: 50; background: rgba(255,255,255,.97); border-bottom: 1px solid var(--border); }
+.nav-inner { max-width: 1100px; margin: 0 auto; padding: 1.2rem 2rem; display: flex; align-items: center; justify-content: space-between; }
+.nav-brand { font-family: 'EB Garamond', serif; font-size: 1.2rem; font-weight: 600; letter-spacing: .06em; }
+.nav-right { display: flex; align-items: center; gap: 2rem; }
+.nav-loc { font-size: .75rem; letter-spacing: .15em; text-transform: uppercase; color: var(--muted); }
+.nav-cta { font-size: .72rem; letter-spacing: .15em; text-transform: uppercase; text-decoration: none; color: var(--text); border-bottom: 1px solid var(--text); padding-bottom: 1px; transition: opacity .2s; }
+.nav-cta:hover { opacity: .5; }
+
+.hero { padding-top: 64px; height: 90vh; background-size: cover; background-position: center; position: relative; display: flex; align-items: flex-end; }
+.hero-body { position: relative; z-index: 1; background: linear-gradient(to top, rgba(10,10,10,.7) 0%, transparent 100%); width: 100%; padding: 4rem 2rem 3rem; }
+.hero-body h1 { font-family: 'EB Garamond', serif; font-size: clamp(2.5rem, 6vw, 5rem); font-weight: 400; color: #fff; line-height: 1.1; margin-bottom: .5rem; }
+.hero-body p { font-size: 1rem; color: rgba(255,255,255,.78); font-style: italic; font-family: 'EB Garamond', serif; }
+
+.intro { padding: 6rem 0; border-bottom: 1px solid var(--border); }
+.intro-inner { display: flex; align-items: flex-start; justify-content: space-between; gap: 4rem; }
+.intro-copy { font-family: 'EB Garamond', serif; font-size: 1.4rem; line-height: 1.72; color: var(--text); max-width: 620px; }
+.btn { display: inline-block; border: 1px solid var(--black); color: var(--black); text-decoration: none; font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; padding: .85rem 2rem; transition: background .2s, color .2s; white-space: nowrap; align-self: flex-start; margin-top: .5rem; }
+.btn:hover { background: var(--black); color: var(--bg); }
+
+.services { padding: 4rem 0; border-bottom: 1px solid var(--border); }
+.section-tag { font-size: .68rem; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 1.2rem; }
+.services-list { display: flex; flex-wrap: wrap; gap: .5rem; }
+.service-pill { font-size: .82rem; border: 1px solid var(--border); padding: .35rem 1rem; letter-spacing: .04em; color: var(--text); }
+
+.gallery { padding: 3rem 0; background: var(--gray); }
+.gallery-masonry { columns: 3; column-gap: 6px; padding: 0 2rem; }
+.gallery-item { break-inside: avoid; margin-bottom: 6px; overflow: hidden; }
+.gallery-item img { width: 100%; height: auto; display: block; transition: transform .5s ease; }
+.gallery-item:hover img { transform: scale(1.02); }
+
+.info { padding: 6rem 0; border-top: 1px solid var(--border); }
+.info-inner { display: grid; grid-template-columns: 1fr 2fr; gap: 5rem; align-items: start; }
+.info-left h2 { font-family: 'EB Garamond', serif; font-size: 2rem; margin-top: .5rem; }
+.info-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2rem; }
+.info-grid p, .info-grid a { color: var(--text); text-decoration: none; font-size: .92rem; }
+.info-grid a:hover { opacity: .6; }
+.hour-row { font-size: .85rem; line-height: 1.9; }
+
+footer { padding: 1.5rem 2rem; text-align: center; font-size: .75rem; color: var(--muted); letter-spacing: .08em; text-transform: uppercase; border-top: 1px solid var(--border); }
+
+@media (max-width: 768px) {
+  .intro-inner { flex-direction: column; gap: 2rem; }
+  .gallery-masonry { columns: 2; padding: 0 1rem; }
+  .info-inner { grid-template-columns: 1fr; }
+  .nav-loc { display: none; }
+}
+@media (max-width: 480px) {
+  .gallery-masonry { columns: 1; }
+}
