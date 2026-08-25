@@ -434,6 +434,72 @@ button { font-family: inherit; cursor: pointer; }
 .toast-success { background: #0F172A; color: #fff; }
 .toast-error { background: var(--red); color: #fff; }
 
+/* Modal / bottom sheet */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.45);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.modal-sheet {
+  background: var(--surface);
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-width: 520px;
+  padding: 1.5rem 1.5rem 2rem;
+  animation: sheetUp .2s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+@keyframes sheetUp {
+  from { transform: translateY(60px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  font-size: .95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: .25rem .5rem;
+  border-radius: 4px;
+}
+.modal-close:hover { background: var(--bg); }
+.modal-body { display: flex; flex-direction: column; }
+.scan-msg-ok {
+  margin-top: .875rem;
+  padding: .6rem .875rem;
+  background: var(--green-bg);
+  color: var(--green);
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 500;
+}
+.scan-msg-err {
+  margin-top: .875rem;
+  padding: .6rem .875rem;
+  background: var(--red-bg);
+  color: var(--red);
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 500;
+}
+
+/* Mobile bottom nav */
+.mobile-nav { display: none; }
+
 @media (max-width: 1200px) {
   .kanban { grid-template-columns: repeat(3, 1fr); }
 }
@@ -441,4 +507,37 @@ button { font-family: inherit; cursor: pointer; }
   .kanban { grid-template-columns: 1fr 1fr; }
   .detail-grid { grid-template-columns: 1fr; }
   .settings-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; }
+  .content { padding: 1rem 1rem 5rem; }
+  .kanban { grid-template-columns: 1fr; }
+  .toolbar { flex-wrap: wrap; gap: .5rem; }
+  .modal-sheet { border-radius: 16px 16px 0 0; max-width: 100%; }
+
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--sidebar);
+    border-top: 1px solid rgba(255,255,255,.08);
+    z-index: 50;
+  }
+  .mobile-nav-link {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    color: rgba(255,255,255,.45);
+    font-size: .65rem;
+    font-weight: 600;
+    padding: .6rem .5rem .5rem;
+    text-decoration: none;
+    letter-spacing: .04em;
+    transition: color .15s;
+  }
+  .mobile-nav-link.active { color: #fff; }
+  .mobile-nav-icon { font-size: 1.15rem; }
 }

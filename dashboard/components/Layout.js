@@ -56,6 +56,19 @@ export default function Layout({ title, children }) {
         </header>
         <main className="content">{children}</main>
       </div>
+
+      <nav className="mobile-nav">
+        {links.map(({ href, icon, label }) => (
+          <Link
+            key={href}
+            href={href}
+            className={`mobile-nav-link${router.pathname === href ? ' active' : ''}`}
+          >
+            <span className="mobile-nav-icon">{icon}</span>
+            {label}
+          </Link>
+        ))}
+      </nav>
     </div>
   );
 }

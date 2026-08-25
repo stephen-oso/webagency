@@ -4,6 +4,12 @@ import Layout from '../components/Layout';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+const ALL_CATEGORIES = [
+  'restaurant', 'plumber', 'salon', 'dentist', 'landscaping',
+  'retail', 'trades', 'professional', 'auto', 'cleaning',
+  'gym', 'photography', 'realestate', 'childcare', 'petservices',
+];
+
 const COLUMNS = [
   {
     id: 'discovered',
@@ -67,6 +73,13 @@ export default function PipelinePage() {
   const [error, setError] = useState(null);
   const [lastRefresh, setLastRefresh] = useState(null);
 
+  // Rescan modal
+  const [scanOpen, setScanOpen] = useState(false);
+  const [scanRegion, setScanRegion] = useState('');
+  const [scanCategories, setScanCategories] = useState([]);
+  const [scanning, setScanning] = useState(false);
+  const [scanMsg, setScanMsg] = useState(null);
+
   const load = useCallback(async () => {
     try {
       const r = await fetch(`${API}/businesses?limit=200`);
@@ -87,6 +100,38 @@ export default function PipelinePage() {
     const t = setInterval(load, 10_000);
     return () => clearInterval(t);
   }, [load]);
+
+  // Re-fetch immediately when tab becomes visible (mobile browsers throttle intervals in background)
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [load]);
+
+  const toggleScanCat = (cat) =>
+    setScanCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
+
+  const runScan = async () => {
+    if (!scanRegion.trim() || scanCategories.length === 0) return;
+    setScanning(true);
+    setScanMsg(null);
+    try {
+      const r = await fetch(`${API}/pipeline/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ region: scanRegion.trim(), categories: scanCategories }),
+      });
+      if (!r.ok) throw new Error(`API ${r.status}`);
+      setScanMsg({ type: 'ok', text: `Pipeline started for ${scanRegion} · ${scanCategories.length} categories` });
+      setScanRegion('');
+      setScanCategories([]);
+      setTimeout(() => { setScanOpen(false); setScanMsg(null); }, 1800);
+    } catch (e) {
+      setScanMsg({ type: 'err', text: e.message });
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const grouped = COLUMNS.map(col => ({
     ...col,
@@ -109,9 +154,14 @@ export default function PipelinePage() {
             </span>
           )}
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
-          ↻ Refresh
-        </button>
+        <div style={{ display: 'flex', gap: '.5rem' }}>
+          <button className="btn btn-ghost btn-sm" onClick={load} disabled={loading}>
+            ↻ Refresh
+          </button>
+          <button className="btn btn-primary btn-sm" onClick={() => setScanOpen(true)}>
+            + Scan
+          </button>
+        </div>
       </div>
 
       {error && <div className="error-msg" style={{ marginBottom: '1rem' }}>Cannot reach API: {error}</div>}
@@ -141,6 +191,58 @@ export default function PipelinePage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {scanOpen && (
+        <div className="modal-overlay" onClick={() => setScanOpen(false)}>
+          <div className="modal-sheet" onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <span>Run Discovery</span>
+              <button className="modal-close" onClick={() => setScanOpen(false)}>✕</button>
+            </div>
+            <div className="modal-body">
+              <div className="field">
+                <label className="field-label" htmlFor="scan-region">Region</label>
+                <input
+                  id="scan-region"
+                  className="field-input"
+                  placeholder="e.g. Austin, TX"
+                  value={scanRegion}
+                  onChange={e => setScanRegion(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && runScan()}
+                  autoFocus
+                />
+              </div>
+              <div className="field" style={{ marginTop: '1rem' }}>
+                <div className="field-label">Categories ({scanCategories.length} selected)</div>
+                <div className="tag-group" style={{ marginTop: '.5rem' }}>
+                  {ALL_CATEGORIES.map(cat => (
+                    <button
+                      key={cat}
+                      className={`tag-btn${scanCategories.includes(cat) ? ' selected' : ''}`}
+                      onClick={() => toggleScanCat(cat)}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {scanMsg && (
+                <div className={scanMsg.type === 'ok' ? 'scan-msg-ok' : 'scan-msg-err'}>
+                  {scanMsg.text}
+                </div>
+              )}
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', marginTop: '1.25rem' }}
+                onClick={runScan}
+                disabled={scanning || !scanRegion.trim() || scanCategories.length === 0}
+              >
+                {scanning ? 'Starting…' : '▶ Run Pipeline'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </Layout>
